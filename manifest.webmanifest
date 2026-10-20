@@ -1,0 +1,13 @@
+{
+  "name": "Stone Paper Scissors",
+  "short_name": "SPS",
+  "description": "Play Stone Paper Scissors against a machine that learns your habits.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#10132b",
+  "theme_color": "#10132b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

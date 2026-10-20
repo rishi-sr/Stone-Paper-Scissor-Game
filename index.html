@@ -2,50 +2,293 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Stone Paper Scissors</title>
+    <meta name="description" content="Play Stone Paper Scissors against a machine that learns your habits. Works on phones and desktops.">
+    <meta name="theme-color" content="#10132B">
+    <meta name="color-scheme" content="dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=Unbounded:wght@500;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
+    <script src="app.js" defer></script>
 </head>
 <body>
-    <div class="heading">
-        Stone Paper Scissors
-    </div>
-    <div class="panel">
-        <div id="user-panel">
-            <div id="user-panel-img">
+    <!-- Move glyphs, reused everywhere with <use href="#g-..."> -->
+    <svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false">
+        <symbol id="g-stone" viewBox="0 0 64 64">
+            <polygon points="12,38 17,22 30,12 46,15 55,29 51,47 34,54 17,50"/>
+            <path class="facet" d="M30 12 27 31 12 38M17 50 27 31 42 33 46 15M42 33 55 29M42 33 34 54"/>
+        </symbol>
+        <symbol id="g-paper" viewBox="0 0 64 64">
+            <path d="M18 8h22l10 10v38H18z"/>
+            <path d="M40 8v10h10"/>
+            <path class="facet" d="M24 30h18M24 38h18M24 46h11"/>
+        </symbol>
+        <symbol id="g-scissors" viewBox="0 0 64 64">
+            <circle cx="19" cy="47" r="8"/>
+            <circle cx="45" cy="47" r="8"/>
+            <path d="M24 41 49 9M40 41 15 9"/>
+            <circle cx="32" cy="30.8" r="2.4" fill="currentColor" stroke="none"/>
+        </symbol>
+        <symbol id="g-idle-you" viewBox="0 0 64 64">
+            <circle class="facet" cx="32" cy="32" r="16" stroke-dasharray="3 6"/>
+        </symbol>
+        <symbol id="g-idle-cpu" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="17"/>
+            <circle cx="32" cy="32" r="7" fill="currentColor" stroke="none"/>
+        </symbol>
+    </svg>
+
+    <header class="topbar">
+        <div class="brand">
+            <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M16 6.5 25 22 7 22Z" class="brand-cycle"/>
+                <circle cx="16" cy="6.5" r="3.5" fill="var(--you)"/>
+                <circle cx="25" cy="22" r="3.5" fill="var(--machine)"/>
+                <circle cx="7" cy="22" r="3.5" fill="var(--silver)"/>
+            </svg>
+            <h1>Stone Paper Scissors</h1>
+        </div>
+        <nav class="tools" aria-label="Game options">
+            <button class="icon-btn" id="rulesBtn" type="button" aria-label="Rules" title="Rules">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>
+            </button>
+            <button class="icon-btn" id="soundBtn" type="button" aria-label="Sound and vibration" title="Sound and vibration" aria-pressed="true">
+                <svg class="when-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+                <svg class="when-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></svg>
+            </button>
+            <button class="icon-btn" id="setupBtn" type="button" aria-label="New match" title="New match">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+            </button>
+        </nav>
+    </header>
+
+    <main class="stage">
+        <p class="matchline">
+            <span id="roundLabel">Round 1</span>
+            <span id="formatLabel" class="matchline-format">First to 3 wins</span>
+        </p>
+
+        <section class="arena" id="arena" data-state="idle" aria-label="Arena">
+            <div class="pod pod--you">
+                <div class="ring" id="youRing">
+                    <svg class="ring-art" viewBox="0 0 200 200" aria-hidden="true">
+                        <circle class="ring-track" cx="100" cy="100" r="97"/>
+                        <circle class="ring-seg" cx="100" cy="100" r="86" pathLength="120"/>
+                        <circle class="ring-core" cx="100" cy="100" r="72"/>
+                    </svg>
+                    <span class="ring-burst" aria-hidden="true"></span>
+                    <svg class="glyph" id="youGlyph" aria-hidden="true"><use href="#g-idle-you"/></svg>
+                </div>
+                <div class="tally">
+                    <span class="tally-score" id="youScore">0</span>
+                    <span class="tally-name">You</span>
+                    <span class="pips" id="youPips" aria-hidden="true"></span>
+                </div>
             </div>
-        </div>
-        <div id="score-panel">
-                <div class="score">
-                    <p class="userScore" id="score-count">0</p>
-                    <p>Your Score</p>
+
+            <span class="versus" aria-hidden="true">vs</span>
+
+            <div class="pod pod--cpu">
+                <div class="ring" id="cpuRing">
+                    <svg class="ring-art" viewBox="0 0 200 200" aria-hidden="true">
+                        <circle class="ring-track" cx="100" cy="100" r="97"/>
+                        <circle class="ring-seg" cx="100" cy="100" r="86" pathLength="120"/>
+                        <g class="ring-scan" id="cpuScan"><circle cx="100" cy="100" r="86" pathLength="120"/></g>
+                        <circle class="ring-core" cx="100" cy="100" r="72"/>
+                    </svg>
+                    <span class="ring-burst" aria-hidden="true"></span>
+                    <svg class="glyph" id="cpuGlyph" aria-hidden="true"><use href="#g-idle-cpu"/></svg>
                 </div>
-                <div class="score">
-                    <p class="compScore" id="score-count">0</p>
-                    <p>Computer Score</p>
+                <div class="tally">
+                    <span class="tally-score" id="cpuScore">0</span>
+                    <span class="tally-name">Machine</span>
+                    <span class="pips" id="cpuPips" aria-hidden="true"></span>
                 </div>
-                <div class="msg-box">
-                    <p id="msg">Play Your Move</p>
-                </div>
+            </div>
+        </section>
+
+        <section class="verdict" id="verdict">
+            <h2 class="verdict-head" id="headline">Choose your move</h2>
+            <p class="verdict-rule" id="ruleLine">Stone crushes scissors, scissors cut paper, paper covers stone.</p>
+            <p class="verdict-readout" id="readout"></p>
+            <p class="sr-only" id="status" aria-live="polite"></p>
+        </section>
+
+        <div class="pad" id="pad" role="group" aria-label="Choose your move">
+            <button class="move" type="button" data-move="stone" aria-keyshortcuts="1">
+                <svg class="move-glyph" aria-hidden="true"><use href="#g-stone"/></svg>
+                <span class="move-name">Stone</span>
+                <span class="move-rule">Beats scissors</span>
+                <kbd class="move-key">1</kbd>
+            </button>
+            <button class="move" type="button" data-move="paper" aria-keyshortcuts="2">
+                <svg class="move-glyph" aria-hidden="true"><use href="#g-paper"/></svg>
+                <span class="move-name">Paper</span>
+                <span class="move-rule">Beats stone</span>
+                <kbd class="move-key">2</kbd>
+            </button>
+            <button class="move" type="button" data-move="scissors" aria-keyshortcuts="3">
+                <svg class="move-glyph" aria-hidden="true"><use href="#g-scissors"/></svg>
+                <span class="move-name">Scissors</span>
+                <span class="move-rule">Beats paper</span>
+                <kbd class="move-key">3</kbd>
+            </button>
         </div>
-        <div id="computer-panel">
-            <div id="computer-panel-img"></div>
+
+        <div class="history">
+            <span class="history-label">This match</span>
+            <ol class="history-list" id="history" aria-label="Round results this match"></ol>
         </div>
-    </div>
-    <div id="selection-panel">
-        <div class="select-panel" id="stone">
-            <img src="Stone.png" alt="" id="stone">
-        </div>
-        <div class="select-panel" id="paper">
-            <img src="paper.png" alt="" id="paper">
-        </div>
-        <div class="select-panel" id="scissor">
-            <img src="scissors.png" alt="" id="scissor">
-        </div>
-    </div>
-    <footer>
-        &copy;Rishi Srivastava
-    </footer>
+    </main>
+
+    <footer class="credit">&copy; Rishi Srivastava</footer>
+
+    <!-- Rules -->
+    <dialog id="rulesDialog" aria-labelledby="rulesTitle">
+        <form method="dialog" class="sheet">
+            <header class="sheet-head">
+                <h2 id="rulesTitle">How to play</h2>
+                <button class="icon-btn" value="close" aria-label="Close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                </button>
+            </header>
+
+            <div class="sheet-body">
+                <p>Pick a move. The machine picks at the same moment, and it never sees your current move, only the ones you've already played.</p>
+
+                <svg class="cycle" viewBox="0 0 240 212" role="img" aria-labelledby="cycleDesc">
+                    <desc id="cycleDesc">Stone crushes scissors, scissors cut paper, paper covers stone.</desc>
+                    <defs>
+                        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                            <path d="M0 1 9 5 0 9z" fill="var(--muted)"/>
+                        </marker>
+                    </defs>
+                    <g class="cycle-links">
+                        <path d="M137.8 73 177.2 137.3" marker-end="url(#arrow)"/>
+                        <path d="M162 168H80" marker-end="url(#arrow)"/>
+                        <path d="M61.8 139 101.2 74.7" marker-end="url(#arrow)"/>
+                    </g>
+                    <g class="cycle-words">
+                        <text x="166" y="100">crushes</text>
+                        <text x="121" y="194" text-anchor="middle">cut</text>
+                        <text x="74" y="100" text-anchor="end">covers</text>
+                    </g>
+                    <g class="cycle-nodes">
+                        <circle cx="120" cy="44" r="28"/>
+                        <circle cx="196" cy="168" r="28"/>
+                        <circle cx="44" cy="168" r="28"/>
+                        <use href="#g-stone" x="102" y="26" width="36" height="36"/>
+                        <use href="#g-scissors" x="178" y="150" width="36" height="36"/>
+                        <use href="#g-paper" x="26" y="150" width="36" height="36"/>
+                    </g>
+                </svg>
+
+                <ul class="rule-list">
+                    <li><strong>Stone crushes scissors.</strong></li>
+                    <li><strong>Scissors cut paper.</strong></li>
+                    <li><strong>Paper covers stone.</strong></li>
+                    <li>If you both pick the same move, it's a draw. Draws don't score, so throw again.</li>
+                </ul>
+
+                <h3>Winning a match</h3>
+                <p>Best of 3 means the first to win 2 rounds takes the match. Best of 5 needs 3 wins and best of 7 needs 4. Endless keeps a running score until you start a new match.</p>
+
+                <h3>The two opponents</h3>
+                <p><strong>Random</strong> picks every move by chance, so nothing you do changes your odds.</p>
+                <p><strong>Adaptive</strong> watches the order you play your moves in and tries to counter the one you're likely to play next. After each round it tells you what it predicted. Play unpredictably to beat it.</p>
+
+                <h3>Controls</h3>
+                <p>Tap a move. On a keyboard, press <kbd>1</kbd> for stone, <kbd>2</kbd> for paper and <kbd>3</kbd> for scissors.</p>
+            </div>
+
+            <footer class="sheet-foot">
+                <button class="btn btn-primary" value="close">Got it</button>
+            </footer>
+        </form>
+    </dialog>
+
+    <!-- Match setup -->
+    <dialog id="setupDialog" aria-labelledby="setupTitle">
+        <form method="dialog" class="sheet" id="setupForm">
+            <header class="sheet-head">
+                <h2 id="setupTitle">New match</h2>
+                <button class="icon-btn" value="cancel" aria-label="Close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                </button>
+            </header>
+
+            <div class="sheet-body">
+                <fieldset class="field">
+                    <legend>Match length</legend>
+                    <div class="segmented">
+                        <label><input type="radio" name="format" value="3"><span>Best of 3</span></label>
+                        <label><input type="radio" name="format" value="5"><span>Best of 5</span></label>
+                        <label><input type="radio" name="format" value="7"><span>Best of 7</span></label>
+                        <label><input type="radio" name="format" value="0"><span>Endless</span></label>
+                    </div>
+                    <p class="hint" id="formatHint"></p>
+                </fieldset>
+
+                <fieldset class="field">
+                    <legend>Opponent</legend>
+                    <div class="choices">
+                        <label class="choice">
+                            <input type="radio" name="opponent" value="adaptive">
+                            <span class="choice-body">
+                                <strong>Adaptive</strong>
+                                <span>Learns the order you play in and tries to counter your next move.</span>
+                            </span>
+                        </label>
+                        <label class="choice">
+                            <input type="radio" name="opponent" value="random">
+                            <span class="choice-body">
+                                <strong>Random</strong>
+                                <span>Picks every move by chance. Pure luck.</span>
+                            </span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <section class="record" aria-labelledby="recordTitle">
+                    <h3 id="recordTitle">Your record on this device</h3>
+                    <dl>
+                        <div><dt>Matches won</dt><dd id="statMatches">0 of 0</dd></div>
+                        <div><dt>Rounds won</dt><dd id="statRounds">0%</dd></div>
+                        <div><dt>Best win streak</dt><dd id="statStreak">0</dd></div>
+                    </dl>
+                    <button type="button" class="text-btn" id="resetStats">Reset record</button>
+                </section>
+            </div>
+
+            <footer class="sheet-foot">
+                <button class="btn btn-primary" value="start">Start match</button>
+            </footer>
+        </form>
+    </dialog>
+
+    <!-- Match over -->
+    <dialog id="overDialog" aria-labelledby="overTitle">
+        <form method="dialog" class="sheet sheet--over">
+            <div class="sheet-body">
+                <h2 id="overTitle" class="over-title">You won the match</h2>
+                <p class="over-score" aria-label="Final score">
+                    <span class="over-you" id="overYou">3</span>
+                    <span class="over-dash">–</span>
+                    <span class="over-cpu" id="overCpu">1</span>
+                </p>
+                <dl class="over-stats" id="overStats"></dl>
+            </div>
+            <footer class="sheet-foot">
+                <button class="btn" value="setup">Change setup</button>
+                <button class="btn btn-primary" value="rematch" autofocus>Rematch</button>
+            </footer>
+        </form>
+    </dialog>
 </body>
-<script src="app.js"></script>
 </html>
